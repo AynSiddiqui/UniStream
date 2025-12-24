@@ -55,8 +55,10 @@ func TestIntegration(t *testing.T) {
 	}
 	defer pub.Close()
 
-	// 4. Subscribe (with options if we had them fully implemented)
-	sub, err := broker.NewSubscriber(topic, groupID, unistream.WithIdempotency(true))
+	// 4. Subscribe with idempotency enabled
+	sub, err := broker.NewSubscriber(topic, groupID, 
+		unistream.WithIdempotency(true, "localhost:6379"),
+	)
 	if err != nil {
 		t.Fatalf("NewSubscriber failed: %v", err)
 	}
@@ -66,28 +68,65 @@ func TestIntegration(t *testing.T) {
 	handler := func(ctx context.Context, msg *unistream.Message) error {
 		processedCount++
 		fmt.Printf("Processing message: %s\n", msg.UUID)
-		_ = msg.Ack()
+		// Ack is handled by the subscriber after successful processing
 		return nil
 	}
 
 	go sub.Subscribe(ctx, topic, handler)
 
-	// 6. Produce Message
-	msgID := "msg-123"
+	// 5. Produce unique messages
+	msgID1 := "msg-123"
+	msgID2 := "msg-456"
 	payload := []byte("hello unistream")
 	
+	// Publish first message
 	err = pub.Publish(ctx, topic, &unistream.Message{
-		UUID: msgID,
+		UUID: msgID1,
 		Payload: payload,
 	})
 	if err != nil {
 		t.Fatalf("Publish failed: %v", err)
 	}
 
-	// 7. Verify Consumption
-	time.Sleep(5 * time.Second)
-	if processedCount != 1 {
-		t.Errorf("Expected 1 processed message, got %d", processedCount)
+	// Wait a bit for processing
+	time.Sleep(2 * time.Second)
+
+	// Publish duplicate message (should be skipped)
+	err = pub.Publish(ctx, topic, &unistream.Message{
+		UUID: msgID1,
+		Payload: []byte("duplicate message"),
+	})
+	if err != nil {
+		t.Fatalf("Publish failed: %v", err)
 	}
-	// Note: Idempotency is mocked/placeholder in adapter for now, so we verify basic flow only.
+
+	// Publish second unique message
+	err = pub.Publish(ctx, topic, &unistream.Message{
+		UUID: msgID2,
+		Payload: payload,
+	})
+	if err != nil {
+		t.Fatalf("Publish failed: %v", err)
+	}
+
+	// 6. Verify Consumption
+	time.Sleep(5 * time.Second)
+	if processedCount != 2 {
+		t.Errorf("Expected 2 processed messages (msg-123 and msg-456), got %d", processedCount)
+	}
+
+	// 7. Verify idempotency: Publish duplicate again
+	err = pub.Publish(ctx, topic, &unistream.Message{
+		UUID: msgID1,
+		Payload: []byte("another duplicate"),
+	})
+	if err != nil {
+		t.Fatalf("Publish failed: %v", err)
+	}
+
+	time.Sleep(2 * time.Second)
+	// Count should still be 2 (duplicate should be skipped)
+	if processedCount != 2 {
+		t.Errorf("Expected 2 processed messages after duplicate, got %d", processedCount)
+	}
 }

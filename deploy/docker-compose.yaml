@@ -1,7 +1,6 @@
-version: '3.8'
 services:
   redpanda:
-    image: docker.redpanda.com/redpandadata/redpanda:latest
+    image: redpandadata/redpanda:v24.1.5
     container_name: unistream-redpanda
     command:
       - redpanda
@@ -27,7 +26,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: unistream-redis
     ports:
       - 6379:6379
@@ -38,7 +37,7 @@ services:
       retries: 5
 
   pulsar:
-    image: apachepulsar/pulsar:3.3.2
+    image: apachepulsar/pulsar:3.2.0
     container_name: unistream-pulsar
     command: bin/pulsar standalone
     environment:

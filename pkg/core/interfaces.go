@@ -13,12 +13,12 @@ type Message struct {
 	Payload  []byte
 	Metadata map[string]string
 	Context  context.Context
-	
+
 	ackFunc  func() error
 	nackFunc func() error
 }
 
-func (m *Message) SetAck(f func() error) { m.ackFunc = f }
+func (m *Message) SetAck(f func() error)  { m.ackFunc = f }
 func (m *Message) SetNack(f func() error) { m.nackFunc = f }
 func (m *Message) Ack() error {
 	if m.ackFunc != nil {
@@ -59,26 +59,38 @@ type Broker interface {
 // Options/Config
 
 // PublishConfig holds configuration for publishers.
-type PublishConfig struct {}
+type PublishConfig struct {
+	SchemaValidator interface{} // SchemaValidator interface for validation
+}
 
 // SubscribeConfig holds configuration for subscribers.
 type SubscribeConfig struct {
-	IdempotencyEnabled bool
-	IdempotencyTTL     time.Duration
-	DLQTopic           string
-	MaxRetries         int
+	IdempotencyEnabled   bool
+	IdempotencyTTL       time.Duration
+	IdempotencyRedisAddr string // Redis address for idempotency (e.g., "localhost:6379")
+	DLQTopic             string
+	MaxRetries           int
+	RetryBackoff         time.Duration // Backoff duration for retries
+	EnableRetry          bool          // Enable retry middleware
 }
 
 type PublishOption func(*PublishConfig)
 type SubscribeOption func(*SubscribeConfig)
 
 // DriverType constants
+// To add a new driver (e.g., RabbitMQ):
+// 1. Add constant: DriverRabbitMQ DriverType = "rabbitmq"
+// 2. Implement Broker interface in internal/drivers/rabbitmq/
+// 3. Register driver in init() function
+// 4. Export in pkg/unistream/unistream.go
 type DriverType string
 
 const (
 	DriverKafka  DriverType = "kafka"
 	DriverPulsar DriverType = "pulsar"
-	DriverMemory DriverType = "memory"
+	// Future drivers can be added here:
+	// DriverRabbitMQ DriverType = "rabbitmq"
+	// DriverNATS     DriverType = "nats"
 )
 
 // Config holds configuration for connecting to a broker.
@@ -92,9 +104,11 @@ type Config struct {
 
 // Feature Toggle Constructors (Must be here if Options are here)
 // WithIdempotency enables idempotency middleware.
-func WithIdempotency(enabled bool) SubscribeOption {
+// redisAddr is the Redis server address (e.g., "localhost:6379")
+func WithIdempotency(enabled bool, redisAddr string) SubscribeOption {
 	return func(c *SubscribeConfig) {
 		c.IdempotencyEnabled = enabled
+		c.IdempotencyRedisAddr = redisAddr
 		if c.IdempotencyTTL == 0 {
 			c.IdempotencyTTL = 24 * time.Hour
 		}
@@ -108,9 +122,22 @@ type Factory func(addr, user, pass string, extra map[string]interface{}) (Broker
 func WithDLQ(topic string) SubscribeOption {
 	return func(c *SubscribeConfig) {
 		c.DLQTopic = topic
+		c.EnableRetry = true
 		if c.MaxRetries == 0 {
 			c.MaxRetries = 3
 		}
+		if c.RetryBackoff == 0 {
+			c.RetryBackoff = 1 * time.Second
+		}
+	}
+}
+
+// WithRetry enables retry mechanism with custom configuration.
+func WithRetry(maxRetries int, backoff time.Duration) SubscribeOption {
+	return func(c *SubscribeConfig) {
+		c.EnableRetry = true
+		c.MaxRetries = maxRetries
+		c.RetryBackoff = backoff
 	}
 }
 

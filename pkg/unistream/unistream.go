@@ -19,12 +19,19 @@ type SubscribeOption = core.SubscribeOption
 const (
 	DriverKafka  = core.DriverKafka
 	DriverPulsar = core.DriverPulsar
-	DriverMemory = core.DriverMemory
 )
 
 // Helper options
 var WithIdempotency = core.WithIdempotency
 var WithDLQ = core.WithDLQ
+var WithRetry = core.WithRetry
+
+// WithSchemaValidator enables schema validation for publishers
+func WithSchemaValidator(validator interface{}) core.PublishOption {
+	return func(c *core.PublishConfig) {
+		c.SchemaValidator = validator
+	}
+}
 
 // Connect establishes a connection.
 func Connect(ctx context.Context, cfg Config) (Broker, error) {
