@@ -209,5 +209,5 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for instructions on adding new streaming 
 
 ## Contributing
 
-[Contributing Guidelines]
+Contributions are welcome. Open an issue to discuss a change, then send a pull request from a feature branch. Run `go test ./...` before submitting.
 
