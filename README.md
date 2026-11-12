@@ -199,6 +199,18 @@ go run cmd/example_pulsar/main.go
 go run cmd/example_complete/main.go
 ```
 
+### Local Infrastructure
+
+`deploy/docker-compose.yaml` starts everything the examples need:
+
+| Service | Image | Ports |
+| --- | --- | --- |
+| Redpanda (Kafka API) | `redpandadata/redpanda:v24.1.5` | 9092, 8081, 8082 |
+| Redis (idempotency) | `redis:7-alpine` | 6379 |
+| Pulsar | `apachepulsar/pulsar:3.2.0` | 6650, 8080 |
+
+Stop and remove them with `docker-compose down` from the `deploy` directory.
+
 ### Adding New Drivers
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for instructions on adding new streaming frameworks.
