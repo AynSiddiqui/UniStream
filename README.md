@@ -19,10 +19,10 @@ A unified, extensible streaming adapter library for Go that provides a consisten
 The module is named `unistream` and is not published to a Go module proxy, so `go get unistream` will not work. Clone the repository and point your module at it with a `replace` directive:
 
 ```bash
-git clone https://github.com/AynSiddiqui/UniStream.git
+git clone https://github.com/AynSiddiqui/UniStream.git ../UniStream
 ```
 
-In your own project's `go.mod`:
+Run this from your project directory so the clone sits next to it. Then, in your own project's `go.mod`:
 
 ```
 require unistream v0.0.0
