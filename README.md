@@ -2,7 +2,7 @@
 
 ## Status
 
-This library is a prototype with known message-loss defects. It cannot be imported from outside this repository. Do not use it in production. A successor Kafka-only library is being written and will be linked here.
+This library is a prototype with known message-loss defects. It cannot be imported from outside this repository. Do not use it in production. Its Kafka-only successor is [offsetkeeper](https://github.com/AynSiddiqui/offsetkeeper).
 
 ### Known defects
 
