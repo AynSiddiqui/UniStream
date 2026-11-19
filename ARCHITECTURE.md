@@ -197,13 +197,13 @@ finalHandler = MyCustomMiddleware(finalHandler)
 
 - **Duplicate Messages**: Acked without processing
 - **Processing Errors**: Retried (if retry enabled)
-- **Retry Exhausted**: Sent to DLQ (if DLQ enabled), otherwise nacked
-- **DLQ Publish Failed**: Error returned (message not acked)
+- **Retry Exhausted**: Sent to DLQ (if DLQ enabled); Kafka Nack does nothing, and a later commit can skip the failed message
+- **DLQ Publish Failed**: Error returned; a later Kafka commit can skip the failed message
 
 ## Best Practices
 
 1. **Always set UUID**: Required for idempotency
-2. **Use DLQ**: Configure DLQ for production
+2. **Use DLQ**: Configure DLQ for exhausted retries; Kafka writes are not guaranteed to be stored
 3. **Schema Validation**: Validate messages at publish time
 4. **Monitor Status**: Use consumer status callbacks for monitoring
 5. **Graceful Shutdown**: Handle context cancellation properly

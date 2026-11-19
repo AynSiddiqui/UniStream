@@ -1,5 +1,20 @@
 # UniStream
 
+## Status
+
+This library is a prototype with known message-loss defects. It cannot be imported from outside this repository. Do not use it in production. A successor Kafka-only library is being written and will be linked here.
+
+### Known defects
+
+This incomplete list covers message-loss and install defects only; these findings are from code reading, not yet reproduced by a test, except the external import failure.
+
+- Kafka Nack does nothing, and a later offset can be committed past a failed message (`internal/drivers/kafka/adapter.go:220`, `internal/drivers/kafka/adapter.go:241`).
+- An idempotency claim remains after failure or a crash, so redelivery can be acknowledged without processing (`pkg/middleware/idempotency.go:49`).
+- A handler can acknowledge before failing while the driver also acknowledges success (`pkg/core/interfaces.go:23`, `internal/drivers/kafka/adapter.go:245`).
+- The module path is not normally fetchable and external code cannot import the internal drivers needed for registration (`go.mod:1`, `pkg/unistream/unistream.go:38`).
+- The Kafka writer does not set RequiredAcks, so Publish can succeed without the broker storing the message (`internal/drivers/kafka/adapter.go:81`).
+- The Kafka key is used as the message ID, so idempotency can drop distinct messages sharing a key (`internal/drivers/kafka/adapter.go:135`, `internal/drivers/kafka/adapter.go:214`).
+
 A unified, extensible streaming adapter library for Go that provides a consistent interface across multiple messaging systems (Kafka, Pulsar, and more).
 
 ## Features
@@ -10,7 +25,6 @@ A unified, extensible streaming adapter library for Go that provides a consisten
 - ✅ **Schema Validation**: Validate messages before publishing
 - ✅ **Consumer Status**: Real-time status reporting (processing, processed, skipped, retrying, DLQ)
 - ✅ **Extensible**: Easy to add new streaming frameworks
-- ✅ **Production Ready**: Comprehensive error handling and observability
 
 ## Quick Start
 
